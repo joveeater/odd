@@ -1,0 +1,154 @@
+define $ noop ( )
+
+define $ not ( carry ( = 0 ) )
+
+define $ */ ( $ */ )
+
+define $ /* (
+	swap 5 12
+	if = $ */ $ /*
+		list 2 discard 1
+		list 0 
+)
+
+/* Copying and swaping are used in order to bootstrap to named arguments. Be very careful as changes to the code mean changes to their offsets.
+   This makes the functions difficult to read, their definitions as they would be with named arguments is given in a comment below them.
+ */
+
+define $ single_let (
+	carry push push (
+		
+		copy 12 7
+		swap 7 10
+		swap 6 8
+		
+		define
+		noop
+		list 1 pop_define
+		eval 
+		
+	)
+)
+
+/* function $ single_let `( $ name $ val $ code ) (
+	define name ( val )
+	eval code
+	pop_define name
+) */
+
+define $ repeat_ (
+	carry push (
+		copy 23 18
+		swap 3 19
+		
+		single_let $ _ 1 list 15
+			if = _ 0 
+				list 0
+				list 7 eval noop repeat_ - _
+	)
+)
+
+/* function $ repeat_ ( $ count $ body ) (
+	single_let $ _ count (
+		if = _ 0
+			( )
+			( eval body repeat_ - _ 1 )
+	)
+) */
+
+
+define $ carry_let_inner (
+	repeat_ + 2 * 4 length args ( merge )
+	( )
+	repeat_ length args (
+		if = _ length args
+			( ( carry ) )
+			( ( push ) )
+	)
+
+	( list ` + 2 * 10 length args )
+
+	repeat_ length args (
+		(   swap 
+			` + 4 * 8 - _ 1
+			` + 2 + - length args _ + * 7 length args * 3 - _ 1
+		)
+	)
+
+	repeat_ length args (
+		( define ` get args - _ 1 list 1 noop )
+	)
+
+	( eval ` code )
+
+	repeat_ length args (
+		( pop_define ` get args - _ 1 )
+	)
+)
+
+define $ carry_let (
+	carry push (
+	
+		swap 12 15
+		swap 3 11
+		single_let $ args 1 list 7
+		single_let $ code carry_let_inner list
+	)
+)
+
+/* function $ carry_let `( $ vars $ body ) (
+	single_let $ args vars (
+		single_let $ code body (
+			carry_let_inner
+		)
+	)
+) */
+
+define $ function (
+	carry push push (
+		swap 1 2
+		define carry_let 
+	)
+)
+
+/* function $ function `( $ name $ args $ body ) (
+	define name carry_let args body
+) */
+
+function $ first `( $ list ) (
+	get list 0
+)
+
+function $ last `( $ list ) (
+	get list - length list 1
+)
+
+function $ while `( $ cond $ body ) (
+	if eval cond
+		( eval body while cond body )
+		( )
+)
+
+function $ for_each `( $ name $ over $ body ) (
+	if = 0 length over
+		( )
+		( single_let name get over 0 ( eval body )
+		  for_each name rest over body )
+)
+
+function $ map `( $ body $ args ) (
+	if = 0 length args
+		( ( ) )
+		( unshift map body rest args eval body first args )
+)
+
+/* unshift map body rest list eval body first list */
+
+function $ let `( $ vars $ body ) (
+	if = 1 length vars
+		( /* TODO errors */ )
+		( if = 0 length vars 
+			( eval body )
+			( single_let get vars 0 get vars 1 ( let rest rest vars body ) ) )
+)
+
